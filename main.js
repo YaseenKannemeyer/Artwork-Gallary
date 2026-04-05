@@ -62,6 +62,7 @@ for (let i = 0; i < count; i++) {
     new THREE.BoxGeometry(3.2, 2.2, 0.9),
     new THREE.MeshStandardMaterial({ color: 0x202020 }),
   );
+  border.name = `Border_${i}`;
   border.position.z = -4.5;
   baseNode.add(border);
 
@@ -69,6 +70,7 @@ for (let i = 0; i < count; i++) {
     new THREE.BoxGeometry(3, 2, 0.1),
     new THREE.MeshStandardMaterial({ map: texture }),
   );
+  artwork.name = `Art_${i}`;
   artwork.position.z = -4;
   baseNode.add(artwork);
 
@@ -79,6 +81,7 @@ for (let i = 0; i < count; i++) {
       transparent: true,
     }),
   );
+  leftArrow.name = `LeftArrow_${i}`;
   leftArrow.position.set(-1.8, 0, -4);
   baseNode.add(leftArrow);
 
@@ -89,6 +92,7 @@ for (let i = 0; i < count; i++) {
       transparent: true,
     }),
   );
+  rightArrow.name = `RightArrow_${i}`;
   rightArrow.position.set(1.8, 0, -4);
   baseNode.add(rightArrow);
 }
@@ -120,4 +124,17 @@ window.addEventListener("resize", () => {
   mirror.getRenderTarget().setSize(window.innerWidth, window.innerHeight);
 });
 
-window.addEventListener("click", (ev) => {});
+window.addEventListener("click", (ev) => {
+  const raycaster = new THREE.Raycaster();
+
+  const mouseNDC = new THREE.Vector2(
+    (ev.clientX / window.innerWidth) * 2 - 1,
+    -(ev.clientY / window.innerHeight) * 2 + 1,
+  );
+
+  raycaster.setFromCamera(mouseNDC, camera);
+  const intersects = raycaster.intersectObject(rootNode, true);
+  if (intersects.length > 0) {
+    console.log(intersects);
+  }
+});
