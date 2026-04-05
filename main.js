@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Reflector } from "three/examples/jsm/Addons.js";
+import { Tween, Easing, update as updateTween } from "tween";
 
 const images = [
   "socrates.jpg",
@@ -113,10 +114,16 @@ mirror.rotateX(-Math.PI / 2);
 scene.add(mirror);
 
 function rotateGallery(direction) {
-  rootNode.rotateY(direction * ((Math.PI * 2) / count));
+  const deltaY = direction * ((Math.PI * 2) / count);
+
+  new Tween(rootNode.rotation)
+    .to({ y: rootNode.rotation.y + deltaY })
+    .easing(Easing.Quadratic.InOut)
+    .start();
 }
 
 function animate() {
+  updateTween();
   renderer.render(scene, camera);
 }
 
