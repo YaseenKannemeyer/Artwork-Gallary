@@ -29,14 +29,35 @@ const artists = [
   "George Seurat",
 ];
 
+const years = ["1787", "1889", "1831", "1886", "1876", "1886"];
+
+const descriptions = [
+  "Painted in 1787, this neoclassical masterpiece captures the final moments of Socrates as he calmly accepts his death sentence, symbolizing reason, sacrifice, and moral conviction.",
+
+  "Created in 1889, this iconic work depicts Van Gogh’s view from his asylum room in Saint-Rémy, with swirling skies and vivid emotion expressing inner turmoil and beauty.",
+
+  "This famous woodblock print from the 1830s shows a towering wave threatening boats near Mount Fuji, representing the power of nature and the fragility of human life.",
+
+  "Monet’s impressionist piece captures the vibrant colors and soft light of spring in his Giverny garden, emphasizing atmosphere over detail.",
+
+  "Painted in 1876, this dramatic landscape portrays the grandeur of the American West, highlighting nature’s scale and untouched beauty.",
+
+  "Completed in 1886, this pointillist painting shows Parisians relaxing by the Seine, using tiny dots of color to create harmony and structure.",
+];
+
 const textureLoader = new THREE.TextureLoader();
 
-const renderer = new THREE.WebGLRenderer();
+/* ===== RENDERER ===== */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setAnimationLoop(animate);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
+/* ===== SCENE ===== */
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
+
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
@@ -44,13 +65,19 @@ const camera = new THREE.PerspectiveCamera(
   1000,
 );
 
+camera.position.set(0, 1, 2);
+
+/* ===== ROOT ===== */
 const rootNode = new THREE.Object3D();
 scene.add(rootNode);
 
+/* ===== TEXTURES ===== */
 const leftArrowTexture = textureLoader.load("left.png");
 const rightArrowTexture = textureLoader.load("right.png");
 
+/* ===== GALLERY ===== */
 let count = 6;
+
 for (let i = 0; i < count; i++) {
   const texture = textureLoader.load(images[i]);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -59,22 +86,37 @@ for (let i = 0; i < count; i++) {
   baseNode.rotation.y = i * ((Math.PI * 2) / count);
   rootNode.add(baseNode);
 
+  // Frame
   const border = new THREE.Mesh(
     new THREE.BoxGeometry(3.2, 2.2, 0.9),
-    new THREE.MeshStandardMaterial({ color: 0x202020 }),
+    new THREE.MeshStandardMaterial({
+      color: 0xc8a400,
+      metalness: 0.95,
+      roughness: 0.25,
+    }),
   );
-  border.name = `Border`;
   border.position.z = -4.5;
   baseNode.add(border);
+
+  const innerBevel = new THREE.Mesh(
+    new THREE.BoxGeometry(3.05, 2.05, 0.95),
+    new THREE.MeshStandardMaterial({
+      color: 0x8b6914,
+      metalness: 0.9,
+      roughness: 0.4,
+    }),
+  );
+  innerBevel.position.z = -4.48;
+  baseNode.add(innerBevel);
 
   const artwork = new THREE.Mesh(
     new THREE.BoxGeometry(3, 2, 0.1),
     new THREE.MeshStandardMaterial({ map: texture }),
   );
-  artwork.name = `Art`;
   artwork.position.z = -4;
   baseNode.add(artwork);
 
+  // Arrows
   const leftArrow = new THREE.Mesh(
     new THREE.BoxGeometry(0.3, 0.3, 0.01),
     new THREE.MeshStandardMaterial({
@@ -82,7 +124,7 @@ for (let i = 0; i < count; i++) {
       transparent: true,
     }),
   );
-  leftArrow.name = `LeftArrow`;
+  leftArrow.name = "LeftArrow";
   leftArrow.userData = i === count - 1 ? 0 : i + 1;
   leftArrow.position.set(-1.8, 0, -4);
   baseNode.add(leftArrow);
@@ -94,11 +136,15 @@ for (let i = 0; i < count; i++) {
       transparent: true,
     }),
   );
-  rightArrow.name = `RightArrow`;
+  rightArrow.name = "RightArrow";
   rightArrow.userData = i === 0 ? count - 1 : i - 1;
   rightArrow.position.set(1.8, 0, -4);
   baseNode.add(rightArrow);
 }
+
+/* ===== LIGHTING ===== */
+const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambient);
 
 const spotlight = new THREE.SpotLight(0xffffff, 100.0, 10.0, 0.65, 1);
 spotlight.position.set(0, 5, 0);
@@ -106,6 +152,7 @@ spotlight.target.position.set(0, 0.5, -5);
 scene.add(spotlight);
 scene.add(spotlight.target);
 
+/* ===== MIRROR FLOOR ===== */
 const mirror = new Reflector(new THREE.CircleGeometry(10), {
   color: 0x303030,
   textureWidth: window.innerWidth,
@@ -115,60 +162,74 @@ mirror.position.y = -1.15;
 mirror.rotateX(-Math.PI / 2);
 scene.add(mirror);
 
+/* ===== ROTATION ===== */
 function rotateGallery(direction, newIndex) {
   const deltaY = direction * ((Math.PI * 2) / count);
 
   new Tween(rootNode.rotation)
-    .to({ y: rootNode.rotation.y + deltaY })
+    .to({ y: rootNode.rotation.y + deltaY }, 800)
     .easing(Easing.Quadratic.InOut)
     .start()
     .onStart(() => {
+      document.getElementById("year").style.opacity = 0;
       document.getElementById("title").style.opacity = 0;
       document.getElementById("artist").style.opacity = 0;
+      document.getElementById("description").style.opacity = 0;
     })
     .onComplete(() => {
+      document.getElementById("year").innerText = years[newIndex];
       document.getElementById("title").innerText = titles[newIndex];
       document.getElementById("artist").innerText = artists[newIndex];
+      document.getElementById("description").innerText = descriptions[newIndex];
+
+      document.getElementById("year").style.opacity = 1;
       document.getElementById("title").style.opacity = 1;
       document.getElementById("artist").style.opacity = 1;
+      document.getElementById("description").style.opacity = 1;
     });
 }
 
+/* ===== ANIMATE ===== */
 function animate() {
   updateTween();
   renderer.render(scene, camera);
 }
 
+/* ===== RESIZE ===== */
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-
   mirror.getRenderTarget().setSize(window.innerWidth, window.innerHeight);
 });
 
+/* ===== CLICK ===== */
 window.addEventListener("click", (ev) => {
   const raycaster = new THREE.Raycaster();
 
-  const mouseNDC = new THREE.Vector2(
+  const mouse = new THREE.Vector2(
     (ev.clientX / window.innerWidth) * 2 - 1,
     -(ev.clientY / window.innerHeight) * 2 + 1,
   );
 
-  raycaster.setFromCamera(mouseNDC, camera);
+  raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObject(rootNode, true);
+
   if (intersects.length > 0) {
     const obj = intersects[0].object;
-    const newIndex = obj.userData;
+
     if (obj.name === "LeftArrow") {
-      rotateGallery(-1, newIndex);
+      rotateGallery(-1, obj.userData);
     }
 
     if (obj.name === "RightArrow") {
-      rotateGallery(1, newIndex);
+      rotateGallery(1, obj.userData);
     }
   }
 });
 
+/* ===== INITIAL TEXT ===== */
+document.getElementById("year").innerText = years[0];
 document.getElementById("title").innerText = titles[0];
 document.getElementById("artist").innerText = artists[0];
+document.getElementById("description").innerText = descriptions[0];
