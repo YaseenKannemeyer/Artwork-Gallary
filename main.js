@@ -33,15 +33,10 @@ const years = ["1787", "1889", "1831", "1886", "1876", "1886"];
 
 const descriptions = [
   "Painted in 1787, this neoclassical masterpiece captures the final moments of Socrates as he calmly accepts his death sentence, symbolizing reason, sacrifice, and moral conviction.",
-
-  "Created in 1889, this iconic work depicts Van Gogh’s view from his asylum room in Saint-Rémy, with swirling skies and vivid emotion expressing inner turmoil and beauty.",
-
+  "Created in 1889, this iconic work depicts Van Gogh's view from his asylum room in Saint-Rémy, with swirling skies and vivid emotion expressing inner turmoil and beauty.",
   "This famous woodblock print from the 1830s shows a towering wave threatening boats near Mount Fuji, representing the power of nature and the fragility of human life.",
-
-  "Monet’s impressionist piece captures the vibrant colors and soft light of spring in his Giverny garden, emphasizing atmosphere over detail.",
-
-  "Painted in 1876, this dramatic landscape portrays the grandeur of the American West, highlighting nature’s scale and untouched beauty.",
-
+  "Monet's impressionist piece captures the vibrant colors and soft light of spring in his Giverny garden, emphasizing atmosphere over detail.",
+  "Painted in 1876, this dramatic landscape portrays the grandeur of the American West, highlighting nature's scale and untouched beauty.",
   "Completed in 1886, this pointillist painting shows Parisians relaxing by the Seine, using tiny dots of color to create harmony and structure.",
 ];
 
@@ -50,6 +45,7 @@ const textureLoader = new THREE.TextureLoader();
 /* ===== RENDERER ===== */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setAnimationLoop(animate);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
@@ -58,13 +54,17 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
 
+/* ===== CAMERA ===== */
+function getIdealFOV() {
+  return window.innerWidth < 600 ? 90 : 75;
+}
+
 const camera = new THREE.PerspectiveCamera(
-  75,
+  getIdealFOV(),
   window.innerWidth / window.innerHeight,
   0.1,
   1000,
 );
-
 camera.position.set(0, 1, 2);
 
 /* ===== ROOT ===== */
@@ -76,7 +76,7 @@ const leftArrowTexture = textureLoader.load("left.png");
 const rightArrowTexture = textureLoader.load("right.png");
 
 /* ===== GALLERY ===== */
-let count = 6;
+const count = 6;
 
 for (let i = 0; i < count; i++) {
   const texture = textureLoader.load(images[i]);
@@ -86,7 +86,7 @@ for (let i = 0; i < count; i++) {
   baseNode.rotation.y = i * ((Math.PI * 2) / count);
   rootNode.add(baseNode);
 
-  // Frame
+  // Outer frame
   const border = new THREE.Mesh(
     new THREE.BoxGeometry(3.2, 2.2, 0.9),
     new THREE.MeshStandardMaterial({
@@ -98,6 +98,7 @@ for (let i = 0; i < count; i++) {
   border.position.z = -4.5;
   baseNode.add(border);
 
+  // Inner bevel
   const innerBevel = new THREE.Mesh(
     new THREE.BoxGeometry(3.05, 2.05, 0.95),
     new THREE.MeshStandardMaterial({
@@ -109,6 +110,7 @@ for (let i = 0; i < count; i++) {
   innerBevel.position.z = -4.48;
   baseNode.add(innerBevel);
 
+  // Artwork
   const artwork = new THREE.Mesh(
     new THREE.BoxGeometry(3, 2, 0.1),
     new THREE.MeshStandardMaterial({ map: texture }),
@@ -116,7 +118,7 @@ for (let i = 0; i < count; i++) {
   artwork.position.z = -4;
   baseNode.add(artwork);
 
-  // Arrows
+  // Left arrow
   const leftArrow = new THREE.Mesh(
     new THREE.BoxGeometry(0.3, 0.3, 0.01),
     new THREE.MeshStandardMaterial({
@@ -129,6 +131,7 @@ for (let i = 0; i < count; i++) {
   leftArrow.position.set(-1.8, 0, -4);
   baseNode.add(leftArrow);
 
+  // Right arrow
   const rightArrow = new THREE.Mesh(
     new THREE.BoxGeometry(0.3, 0.3, 0.01),
     new THREE.MeshStandardMaterial({
@@ -163,7 +166,12 @@ mirror.rotateX(-Math.PI / 2);
 scene.add(mirror);
 
 /* ===== ROTATION ===== */
+let isAnimating = false;
+
 function rotateGallery(direction, newIndex) {
+  if (isAnimating) return;
+  isAnimating = true;
+
   const deltaY = direction * ((Math.PI * 2) / count);
 
   new Tween(rootNode.rotation)
@@ -186,8 +194,95 @@ function rotateGallery(direction, newIndex) {
       document.getElementById("title").style.opacity = 1;
       document.getElementById("artist").style.opacity = 1;
       document.getElementById("description").style.opacity = 1;
+
+      isAnimating = false;
     });
 }
+
+/* ===== RAYCASTING (shared) ===== */
+function handleInteraction(clientX, clientY) {
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2(
+    (clientX / window.innerWidth) * 2 - 1,
+    -(clientY / window.innerHeight) * 2 + 1,
+  );
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObject(rootNode, true);
+
+  if (intersects.length > 0) {
+    const obj = intersects[0].object;
+    if (obj.name === "LeftArrow") rotateGallery(-1, obj.userData);
+    if (obj.name === "RightArrow") rotateGallery(1, obj.userData);
+  }
+}
+
+/* ===== CLICK ===== */
+window.addEventListener("click", (ev) => {
+  handleInteraction(ev.clientX, ev.clientY);
+});
+
+/* ===== TOUCH ===== */
+let touchStartX = 0;
+let touchStartY = 0;
+
+window.addEventListener(
+  "touchstart",
+  (ev) => {
+    touchStartX = ev.touches[0].clientX;
+    touchStartY = ev.touches[0].clientY;
+  },
+  { passive: true },
+);
+
+window.addEventListener(
+  "touchend",
+  (ev) => {
+    const touch = ev.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    // If the finger moved more than 8px it's a swipe, not a tap — ignore
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) return;
+
+    ev.preventDefault();
+    handleInteraction(touch.clientX, touch.clientY);
+  },
+  { passive: false },
+);
+
+/* ===== SWIPE TO NAVIGATE ===== */
+window.addEventListener(
+  "touchstart",
+  (ev) => {
+    touchStartX = ev.touches[0].clientX;
+  },
+  { passive: true },
+);
+
+window.addEventListener(
+  "touchend",
+  (ev) => {
+    const dx = ev.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) < 40) return; // too short to be a swipe
+
+    // Determine current index from rotation
+    const step = (Math.PI * 2) / count;
+    const raw = -rootNode.rotation.y / step;
+    const currentIndex = ((Math.round(raw) % count) + count) % count;
+
+    if (dx < 0) {
+      // Swipe left → go right (next)
+      const next = currentIndex === 0 ? count - 1 : currentIndex - 1;
+      rotateGallery(1, next);
+    } else {
+      // Swipe right → go left (prev)
+      const prev = currentIndex === count - 1 ? 0 : currentIndex + 1;
+      rotateGallery(-1, prev);
+    }
+  },
+  { passive: true },
+);
 
 /* ===== ANIMATE ===== */
 function animate() {
@@ -197,35 +292,12 @@ function animate() {
 
 /* ===== RESIZE ===== */
 window.addEventListener("resize", () => {
+  camera.fov = getIdealFOV();
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   mirror.getRenderTarget().setSize(window.innerWidth, window.innerHeight);
-});
-
-/* ===== CLICK ===== */
-window.addEventListener("click", (ev) => {
-  const raycaster = new THREE.Raycaster();
-
-  const mouse = new THREE.Vector2(
-    (ev.clientX / window.innerWidth) * 2 - 1,
-    -(ev.clientY / window.innerHeight) * 2 + 1,
-  );
-
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObject(rootNode, true);
-
-  if (intersects.length > 0) {
-    const obj = intersects[0].object;
-
-    if (obj.name === "LeftArrow") {
-      rotateGallery(-1, obj.userData);
-    }
-
-    if (obj.name === "RightArrow") {
-      rotateGallery(1, obj.userData);
-    }
-  }
 });
 
 /* ===== INITIAL TEXT ===== */
