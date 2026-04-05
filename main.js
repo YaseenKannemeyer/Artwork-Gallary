@@ -40,17 +40,25 @@ const camera = new THREE.PerspectiveCamera(
   1000,
 );
 
-const geometry = new THREE.BoxGeometry(2, 3, 4);
-const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+const rootNode = new THREE.Object3D();
+scene.add(rootNode);
 
-camera.position.z = 10;
+let count = 6;
+for (let i = 0; i < count; i++) {
+  const baseNode = new THREE.Object3D();
+  baseNode.rotation.y = i * ((Math.PI * 2) / count);
+  rootNode.add(baseNode);
 
-function animate(time) {
-  cube.rotation.x = time / 2000;
-  cube.rotation.y = time / 1000;
+  const artwork = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 2, 0.1),
+    new THREE.MeshBasicMaterial({ color: 0xf08080 }),
+  );
+  artwork.position.z = -4;
+  baseNode.add(artwork);
+}
 
+function animate() {
+  rootNode.rotation.y += 0.005;
   renderer.render(scene, camera);
 }
 
