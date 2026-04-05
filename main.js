@@ -83,6 +83,7 @@ for (let i = 0; i < count; i++) {
     }),
   );
   leftArrow.name = `LeftArrow`;
+  leftArrow.userData = i === count - 1 ? 0 : i + 1;
   leftArrow.position.set(-1.8, 0, -4);
   baseNode.add(leftArrow);
 
@@ -94,6 +95,7 @@ for (let i = 0; i < count; i++) {
     }),
   );
   rightArrow.name = `RightArrow`;
+  rightArrow.userData = i === 0 ? count - 1 : i - 1;
   rightArrow.position.set(1.8, 0, -4);
   baseNode.add(rightArrow);
 }
@@ -113,13 +115,23 @@ mirror.position.y = -1.15;
 mirror.rotateX(-Math.PI / 2);
 scene.add(mirror);
 
-function rotateGallery(direction) {
+function rotateGallery(direction, newIndex) {
   const deltaY = direction * ((Math.PI * 2) / count);
 
   new Tween(rootNode.rotation)
     .to({ y: rootNode.rotation.y + deltaY })
     .easing(Easing.Quadratic.InOut)
-    .start();
+    .start()
+    .onStart(() => {
+      document.getElementById("title").style.opacity = 0;
+      document.getElementById("artist").style.opacity = 0;
+    })
+    .onComplete(() => {
+      document.getElementById("title").innerText = titles[newIndex];
+      document.getElementById("artist").innerText = artists[newIndex];
+      document.getElementById("title").style.opacity = 1;
+      document.getElementById("artist").style.opacity = 1;
+    });
 }
 
 function animate() {
@@ -146,12 +158,17 @@ window.addEventListener("click", (ev) => {
   raycaster.setFromCamera(mouseNDC, camera);
   const intersects = raycaster.intersectObject(rootNode, true);
   if (intersects.length > 0) {
-    if (intersects[0].object.name === "LeftArrow") {
-      rotateGallery(-1);
+    const obj = intersects[0].object;
+    const newIndex = obj.userData;
+    if (obj.name === "LeftArrow") {
+      rotateGallery(-1, newIndex);
     }
 
-    if (intersects[0].object.name === "RightArrow") {
-      rotateGallery(1);
+    if (obj.name === "RightArrow") {
+      rotateGallery(1, newIndex);
     }
   }
 });
+
+document.getElementById("title").innerText = titles[0];
+document.getElementById("artist").innerText = artists[0];
