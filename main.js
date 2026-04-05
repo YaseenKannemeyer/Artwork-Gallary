@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { texture } from "three/tsl";
+import { Reflector } from "three/examples/jsm/Addons.js";
 
 const images = [
   "socrates.jpg",
@@ -46,6 +46,9 @@ const camera = new THREE.PerspectiveCamera(
 const rootNode = new THREE.Object3D();
 scene.add(rootNode);
 
+const leftArrowTexture = textureLoader.load("left.png");
+const rightArrowTexture = textureLoader.load("right.png");
+
 let count = 6;
 for (let i = 0; i < count; i++) {
   const texture = textureLoader.load(images[i]);
@@ -57,21 +60,55 @@ for (let i = 0; i < count; i++) {
 
   const border = new THREE.Mesh(
     new THREE.BoxGeometry(3.2, 2.2, 0.9),
-    new THREE.MeshBasicMaterial({ color: 0x202020 }),
+    new THREE.MeshStandardMaterial({ color: 0x202020 }),
   );
   border.position.z = -4.5;
   baseNode.add(border);
 
   const artwork = new THREE.Mesh(
     new THREE.BoxGeometry(3, 2, 0.1),
-    new THREE.MeshBasicMaterial({ map: texture }),
+    new THREE.MeshStandardMaterial({ map: texture }),
   );
   artwork.position.z = -4;
   baseNode.add(artwork);
+
+  const leftArrow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.3, 0.01),
+    new THREE.MeshStandardMaterial({
+      map: leftArrowTexture,
+      transparent: true,
+    }),
+  );
+  leftArrow.position.set(-1.8, 0, -4);
+  baseNode.add(leftArrow);
+
+  const rightArrow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.3, 0.01),
+    new THREE.MeshStandardMaterial({
+      map: rightArrowTexture,
+      transparent: true,
+    }),
+  );
+  rightArrow.position.set(1.8, 0, -4);
+  baseNode.add(rightArrow);
 }
 
+const spotlight = new THREE.SpotLight(0xffffff, 100.0, 10.0, 0.65, 1);
+spotlight.position.set(0, 5, 0);
+spotlight.target.position.set(0, 0.5, -5);
+scene.add(spotlight);
+scene.add(spotlight.target);
+
+const mirror = new Reflector(new THREE.CircleGeometry(10), {
+  color: 0x303030,
+  textureWidth: window.innerWidth,
+  textureHeight: window.innerHeight,
+});
+mirror.position.y = -1.15;
+mirror.rotateX(-Math.PI / 2);
+scene.add(mirror);
+
 function animate() {
-  rootNode.rotation.y += 0.002;
   renderer.render(scene, camera);
 }
 
@@ -79,4 +116,8 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+
+  mirror.getRenderTarget().setSize(window.innerWidth, window.innerHeight);
 });
+
+window.addEventListener("click", (ev) => {});
