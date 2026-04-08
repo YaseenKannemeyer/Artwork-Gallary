@@ -14,7 +14,7 @@ const images = [
 const titles = [
   "The Death of Socrates",
   "Starry Night",
-  "The Great Wave off Kanagawa",
+  "The Great Wave of Kanagawa",
   "Effect of Spring, Giverny",
   "Mount Corcoran",
   "A Sunday on La Grande Jatte",
